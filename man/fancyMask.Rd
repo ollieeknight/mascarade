@@ -10,7 +10,7 @@ fancyMask(
   limits.expand = ifelse(label, 0.1, 0.05),
   linewidth = 1,
   shape.expand = linewidth * unit(-1, "pt"),
-  cols = NULL,
+  cols = "inherit",
   label = TRUE,
   label.fontsize = 10,
   label.buffer = unit(0, "cm"),
@@ -39,7 +39,12 @@ passed to \code{geom_mark_shape(expand = ...)}. Default is
 
 \item{cols}{Color specification for cluster outlines (and labels). One of:
 \itemize{
-\item \code{NULL} (default) — uses the default \code{scales::hue_pal()} palette.
+\item \code{"inherit"} (default) — inherits colors from the discrete color scale
+of the plot that \code{fancyMask()} is added to (e.g., from
+\code{scale_color_manual()}). Falls back to black if no discrete color
+scale is found.
+\item A palette function that accepts a single integer \code{n} and returns \code{n}
+colors (e.g., \code{scales::hue_pal()}, \code{rainbow}).
 \item A single color string — applied to every cluster.
 \item An unnamed character vector of length equal to the number of clusters —
 colors are assigned to clusters in factor-level order.
@@ -63,11 +68,9 @@ Default is \code{10}.}
 }
 \value{
 A list of ggplot2 components suitable for adding to a plot with \code{+},
-containing:
-\enumerate{
-\item a \code{ggplot2::coord_cartesian()} specification, and
-\item a \code{geom_mark_shape()} layer.
-}
+containing a \code{ggplot2::coord_cartesian()} specification and a
+\code{geom_mark_shape()} layer. When \code{cols = "inherit"}, returns an
+opaque object whose colors are resolved when added to a plot.
 }
 \description{
 Convenience helper that returns a list of ggplot2 components
@@ -88,24 +91,10 @@ maskTable <- generateMask(dims=exampleMascarade$dims,
 library(ggplot2)
 basePlot <- ggplot(do.call(cbind, exampleMascarade)) +
     geom_point(aes(x=UMAP_1, y=UMAP_2, color=GNLY)) +
+    scale_color_gradient2(low = "#404040", high="red") +
     theme_classic()
 
-# Default colors (scales::hue_pal)
-basePlot + fancyMask(maskTable, ratio=1)
-
-# Single color for all clusters
-basePlot + fancyMask(maskTable, ratio=1, cols="grey40")
-
-# Unnamed vector — one color per cluster in factor-level order
-nClusters <- length(levels(maskTable$cluster))
-basePlot + fancyMask(maskTable, ratio=1,
-                     cols=rainbow(nClusters))
-
-# Named vector — matched by cluster name
-myPal <- setNames(rep("steelblue", nClusters),
-                  levels(maskTable$cluster))
-myPal["NK"] <- "tomato"
-basePlot + fancyMask(maskTable, ratio=1, cols=myPal)
+basePlot + fancyMask(maskTable, ratio=1, cols=scales::hue_pal())
 
 }
 \seealso{

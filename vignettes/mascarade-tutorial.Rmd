@@ -168,7 +168,7 @@ The same can be achived with the `fancyMask()` helper function:
 ```{r}
 ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
     geom_point(color="grey") +
-    fancyMask(maskTable, ratio=1) +
+    fancyMask(maskTable, ratio=1, cols = scales::hue_pal()) +
     theme_classic()
 ```
 
@@ -180,7 +180,7 @@ for NK cells in this dataset.
 ggplot(data, aes(x=UMAP_1, y=UMAP_2)) + 
     geom_point(aes(color=GNLY), size=0.5) +
     scale_color_gradient2(low = "#404040", high="red") + 
-    fancyMask(maskTable, ratio=1) +
+    fancyMask(maskTable, ratio=1, cols = scales::hue_pal()) +
     theme_classic()
 ```
 
@@ -231,7 +231,7 @@ Generate masks using a helper function:
 maskTable <- generateMaskSeurat(pbmc3k)
 ```
 
-We can use `fancyMask()` now:
+We can use `fancyMask()` now, here it reuses colors from `DimPlot` automatically:
 
 ```{r seurat-dimplot}
 DimPlot(pbmc3k) + NoLegend() +
@@ -252,12 +252,12 @@ FeaturePlot(pbmc3k, "GNLY", cols=c("grey90", "red")) +
     fancyMask(maskTable, ratio=1)
 ```
 
-Or multiple markers (skipping the labels to save space):
+Or multiple markers (skipping the labels to save space, but adding colors):
 
 ```{r message=FALSE, warning=FALSE}
 featureList <- c("MS4A1", "GNLY", "CD3E", "CD14")
 FeaturePlot(pbmc3k, features=featureList, cols=c("grey90", "red")) *
-    fancyMask(maskTable, ratio=1, linewidth=0.5, label=FALSE)
+    fancyMask(maskTable, ratio=1, linewidth=0.5, label=FALSE, cols = scales::hue_pal())
 ```
 
 
@@ -269,7 +269,7 @@ pbmc3k <- RunTSNE(pbmc3k)
 maskTable <- generateMaskSeurat(pbmc3k, reduction = "tsne")
 
 FeaturePlot(pbmc3k, features=featureList, reduction = "tsne", cols=c("grey90", "red")) * 
-    fancyMask(maskTable, ratio=1, linewidth=0.5, label=FALSE)
+    fancyMask(maskTable, ratio=1, linewidth=0.5, label=FALSE, cols = scales::hue_pal())
 ```
 
 ### Session info
