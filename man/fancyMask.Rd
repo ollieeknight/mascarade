@@ -10,6 +10,7 @@ fancyMask(
   limits.expand = ifelse(label, 0.1, 0.05),
   linewidth = 1,
   shape.expand = linewidth * unit(-1, "pt"),
+  cols = NULL,
   label = TRUE,
   label.fontsize = 10,
   label.buffer = unit(0, "cm"),
@@ -35,6 +36,16 @@ outline. Default is \code{1}.}
 \item{shape.expand}{Expansion or contraction applied to the marked shapes,
 passed to \code{geom_mark_shape(expand = ...)}. Default is
 \code{unit(-linewidth, "pt")}.}
+
+\item{cols}{Color specification for cluster outlines (and labels). One of:
+\itemize{
+\item \code{NULL} (default) — uses the default \code{scales::hue_pal()} palette.
+\item A single color string — applied to every cluster.
+\item An unnamed character vector of length equal to the number of clusters —
+colors are assigned to clusters in factor-level order.
+\item A named character vector — names must match cluster levels; order does
+not matter.
+}}
 
 \item{label}{Boolean flag wheter the labels should be displayed.}
 
@@ -75,10 +86,26 @@ data("exampleMascarade")
 maskTable <- generateMask(dims=exampleMascarade$dims,
                           clusters=exampleMascarade$clusters)
 library(ggplot2)
-ggplot(do.call(cbind, exampleMascarade)) +
+basePlot <- ggplot(do.call(cbind, exampleMascarade)) +
     geom_point(aes(x=UMAP_1, y=UMAP_2, color=GNLY)) +
-    fancyMask(maskTable, ratio=1) +
     theme_classic()
+
+# Default colors (scales::hue_pal)
+basePlot + fancyMask(maskTable, ratio=1)
+
+# Single color for all clusters
+basePlot + fancyMask(maskTable, ratio=1, cols="grey40")
+
+# Unnamed vector — one color per cluster in factor-level order
+nClusters <- length(levels(maskTable$cluster))
+basePlot + fancyMask(maskTable, ratio=1,
+                     cols=rainbow(nClusters))
+
+# Named vector — matched by cluster name
+myPal <- setNames(rep("steelblue", nClusters),
+                  levels(maskTable$cluster))
+myPal["NK"] <- "tomato"
+basePlot + fancyMask(maskTable, ratio=1, cols=myPal)
 
 }
 \seealso{

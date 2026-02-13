@@ -1,3 +1,6 @@
+# mascarade 0.3.1
+* fancyMask support setting colors
+
 # mascarade 0.3.0
 
 * Significant performance improvements

@@ -26,6 +26,14 @@
 #'   `geom_mark_shape()`. Default is `unit(0, "cm")`.
 #' @param label.fontface Label font face passed to
 #'   `geom_mark_shape()`. Default is `"plain"`.
+#' @param cols Color specification for cluster outlines (and labels). One of:
+#'
+#'   * `NULL` (default) — uses the default `scales::hue_pal()` palette.
+#'   * A single color string — applied to every cluster.
+#'   * An unnamed character vector of length equal to the number of clusters —
+#'     colors are assigned to clusters in factor-level order.
+#'   * A named character vector — names must match cluster levels; order does
+#'     not matter.
 #' @param label.margin Label margin passed to
 #'   `geom_mark_shape()`. Default is `margin(2, 2, 2, 2, "pt")`.
 #'
@@ -46,10 +54,26 @@
 #' maskTable <- generateMask(dims=exampleMascarade$dims,
 #'                           clusters=exampleMascarade$clusters)
 #' library(ggplot2)
-#' ggplot(do.call(cbind, exampleMascarade)) +
+#' basePlot <- ggplot(do.call(cbind, exampleMascarade)) +
 #'     geom_point(aes(x=UMAP_1, y=UMAP_2, color=GNLY)) +
-#'     fancyMask(maskTable, ratio=1) +
 #'     theme_classic()
+#'
+#' # Default colors (scales::hue_pal)
+#' basePlot + fancyMask(maskTable, ratio=1)
+#'
+#' # Single color for all clusters
+#' basePlot + fancyMask(maskTable, ratio=1, cols="grey40")
+#'
+#' # Unnamed vector — one color per cluster in factor-level order
+#' nClusters <- length(levels(maskTable$cluster))
+#' basePlot + fancyMask(maskTable, ratio=1,
+#'                      cols=rainbow(nClusters))
+#'
+#' # Named vector — matched by cluster name
+#' myPal <- setNames(rep("steelblue", nClusters),
+#'                   levels(maskTable$cluster))
+#' myPal["NK"] <- "tomato"
+#' basePlot + fancyMask(maskTable, ratio=1, cols=myPal)
 #'
 #' @export
 #' @importFrom rlang .data
@@ -60,6 +84,7 @@ fancyMask <- function(maskTable,
                       limits.expand = ifelse(label, 0.1, 0.05),
                       linewidth=1,
                       shape.expand=linewidth*unit(-1, "pt"),
+                      cols=NULL,
                       label=TRUE,
                       label.fontsize = 10,
                       label.buffer = unit(0, "cm"),
@@ -75,13 +100,28 @@ fancyMask <- function(maskTable,
     xyWidths <- apply(xyRanges, 2, diff)
     xyRanges <- xyRanges + c(-1, 1)  %*% t(xyWidths * limits.expand)
 
-    # TODO: make colors controllable
-    colors <- NULL
-    if (is.null(colors)) {
-        clusterLevels <- levels(maskTable$cluster)
-        pal <- setNames(scales::hue_pal()(length(clusterLevels)), clusterLevels)
-        colors <- pal[maskTable$cluster]
+    clusterLevels <- levels(maskTable$cluster)
+    nClusters <- length(clusterLevels)
+
+    if (is.null(cols)) {
+        pal <- setNames(scales::hue_pal()(nClusters), clusterLevels)
+    } else if (length(cols) == 1L) {
+        pal <- setNames(rep(cols, nClusters), clusterLevels)
+    } else if (is.null(names(cols))) {
+        if (length(cols) != nClusters) {
+            stop("Length of unnamed `cols` (", length(cols),
+                 ") must equal the number of clusters (", nClusters, ")")
+        }
+        pal <- setNames(cols, clusterLevels)
+    } else {
+        missing <- setdiff(clusterLevels, names(cols))
+        if (length(missing) > 0L) {
+            stop("Named `cols` is missing entries for cluster(s): ",
+                 paste(missing, collapse = ", "))
+        }
+        pal <- cols[clusterLevels]
     }
+    colors <- pal[maskTable$cluster]
 
     xlim <- range(maskTable[[xvar]])
     ylim <- range(maskTable[[yvar]])
