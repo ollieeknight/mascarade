@@ -117,7 +117,7 @@ geom_mark_shape <- function(mapping = NULL, data = NULL, stat = 'identity',
 # The code below is a slightly modified version of mark_hull.R from ggforce packge
 ######
 
-#' @importFrom ggplot2 zeroGrob
+#' @importFrom ggplot2 zeroGrob .pt
 GeomMarkShape <- ggplot2::ggproto(
     'GeomMarkShape', ggplot2::GeomPolygon,
     draw_panel = function(self, data, panel_params, coord, expand = unit(5, 'mm'),
