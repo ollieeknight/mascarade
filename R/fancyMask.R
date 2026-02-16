@@ -167,29 +167,76 @@ buildFancyMaskLayers <- function(maskTable, ratio, limits.expand, linewidth,
     pal <- resolveCols(cols, clusterLevels)
     colors <- pal[maskTable$cluster]
 
+    shapesList <- list()
+    
     if (label) {
-        # Use label column if it exists (for one label per cluster), otherwise fall back to cluster
-        labelCol <- if("label" %in% colnames(maskTable)) maskTable$label else maskTable$cluster
-        shapes <- geom_mark_shape(data=maskTable,
-                                 fill = NA,
-                                 x=maskTable[[xvar]],
-                                 y=maskTable[[yvar]],
-                                 aes(group=group,
-                                     label=labelCol),
-                                 colour=colors,
-                                 linewidth=linewidth,
-                                 expand=shape.expand,
-                                 label.fontsize = label.fontsize,
-                                 label.buffer = label.buffer,
-                                 label.fontface = label.fontface,
-                                 label.margin = label.margin,
-                                 label.minwidth = 0,
-                                 label.lineheight = 0,
-                                 con.cap=0,
-                                 con.type = "straight",
-                                 con.colour = "inherit")
+        # Check if we have a label column (for one label per cluster feature)
+        if("label" %in% colnames(maskTable)) {
+            # When label column exists, use two-layer approach:
+            # 1. Draw all shapes without labels using geom_shape
+            # 2. Draw labels only for groups with non-NA labels using geom_mark_shape
+            
+            # Layer 1: All shapes (unlabeled)
+            shapesList[[1]] <- geom_shape(data=maskTable,
+                                         fill = NA,
+                                         x=maskTable[[xvar]],
+                                         y=maskTable[[yvar]],
+                                         aes(group=group),
+                                         colour=colors,
+                                         linewidth=linewidth,
+                                         expand=shape.expand)
+            
+            # Layer 2: Labels only for groups with non-NA label values
+            first_rows <- maskTable[!duplicated(group)]
+            labeled_groups <- first_rows[!is.na(label), group]
+            labelData <- maskTable[group %in% labeled_groups]
+            
+            if(nrow(labelData) > 0) {
+                # Need to subset colors too
+                colors_for_labels <- colors[maskTable$group %in% labeled_groups][!duplicated(maskTable[group %in% labeled_groups]$group)]
+                
+                shapesList[[2]] <- geom_mark_shape(data=labelData,
+                                         fill = NA,
+                                         x=labelData[[xvar]],
+                                         y=labelData[[yvar]],
+                                         aes(group=group,
+                                             label=label),
+                                         colour=colors_for_labels,
+                                         linewidth=0,  # Don't redraw the border
+                                         expand=shape.expand,
+                                         label.fontsize = label.fontsize,
+                                         label.buffer = label.buffer,
+                                         label.fontface = label.fontface,
+                                         label.margin = label.margin,
+                                         label.minwidth = 0,
+                                         label.lineheight = 0,
+                                         con.cap=0,
+                                         con.type = "straight",
+                                         con.colour = "inherit")
+            }
+        } else {
+            # Original behavior - use cluster column for labels
+            shapesList[[1]] <- geom_mark_shape(data=maskTable,
+                                     fill = NA,
+                                     x=maskTable[[xvar]],
+                                     y=maskTable[[yvar]],
+                                     aes(group=group,
+                                         label=cluster),
+                                     colour=colors,
+                                     linewidth=linewidth,
+                                     expand=shape.expand,
+                                     label.fontsize = label.fontsize,
+                                     label.buffer = label.buffer,
+                                     label.fontface = label.fontface,
+                                     label.margin = label.margin,
+                                     label.minwidth = 0,
+                                     label.lineheight = 0,
+                                     con.cap=0,
+                                     con.type = "straight",
+                                     con.colour = "inherit")
+        }
     } else {
-        shapes <- geom_shape(data=maskTable,
+        shapesList[[1]] <- geom_shape(data=maskTable,
                              fill = NA,
                              x=maskTable[[xvar]],
                              y=maskTable[[yvar]],
@@ -199,13 +246,12 @@ buildFancyMaskLayers <- function(maskTable, ratio, limits.expand, linewidth,
                              expand=shape.expand)
     }
 
-    list(
-        coord_cartesian(xlim=xyRanges[,1],
+    # Return list with coord and all shape layers
+    c(list(coord_cartesian(xlim=xyRanges[,1],
                         ylim=xyRanges[,2],
                         ratio=ratio,
-                        expand=FALSE), # already expanded
-        shapes
-    )
+                        expand=FALSE)), # already expanded
+        shapesList)
 }
 
 defaultDiscreteColourScale <- function() {
