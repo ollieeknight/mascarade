@@ -377,6 +377,18 @@ generateMask <- function(dims, clusters,
         curTable[, cluster := clusterLevels[i]]
         curTable[, part := paste0(cluster, "#", part)]
         curTable[, group := paste0(part, "#", group)]
+        
+        # Calculate area for each part to identify the largest one
+        # Only the largest part should be labeled
+        uniqueParts <- unique(curTable$part)
+        if (length(uniqueParts) > 1) {
+            # Count points in each part
+            partSizes <- sapply(uniqueParts, function(p) sum(curTable$part == p))
+            largestPart <- uniqueParts[which.max(partSizes)]
+            # Set cluster to NA for all parts except the largest
+            curTable[curTable$part != largestPart, cluster := NA]
+        }
+        
         curTable[]
     }))
 
