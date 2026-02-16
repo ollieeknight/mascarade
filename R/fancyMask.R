@@ -168,12 +168,14 @@ buildFancyMaskLayers <- function(maskTable, ratio, limits.expand, linewidth,
     colors <- pal[maskTable$cluster]
 
     if (label) {
+        # Use label column if it exists (for one label per cluster), otherwise fall back to cluster
+        labelCol <- if("label" %in% colnames(maskTable)) maskTable$label else maskTable$cluster
         shapes <- geom_mark_shape(data=maskTable,
                                  fill = NA,
                                  x=maskTable[[xvar]],
                                  y=maskTable[[yvar]],
                                  aes(group=group,
-                                     label=cluster),
+                                     label=labelCol),
                                  colour=colors,
                                  linewidth=linewidth,
                                  expand=shape.expand,

@@ -217,7 +217,9 @@ getPartDensityClipped <- function(curPoints, part, window, smoothSigma, pixelSiz
 
 #' @returns data.table with points representing the mask borders.
 #'      Each individual border line corresponds to a single level of `group` column.
-#'      Cluster assignment is in `cluster` column.
+#'      Cluster assignment is in `cluster` column. 
+#'      The `label` column contains cluster labels only for the largest part of each cluster,
+#'      ensuring only one label appears per cluster when using `fancyMask()`.
 #' @importFrom data.table rbindlist data.table setnames :=
 #' @importFrom utils head tail
 #' @importFrom stats median bw.nrd
@@ -374,20 +376,27 @@ generateMask <- function(dims, clusters,
             return(NULL)
         }
         curTable <- borderTableFromMask(curMask, crop=FALSE)
+        
+        # Identify the largest part before modifying the part column
+        if (length(unique(curTable$part)) > 1) {
+            # Count points in each original part
+            partSizes <- sapply(unique(curTable$part), function(p) sum(curTable$part == p))
+            largestPartNum <- unique(curTable$part)[which.max(partSizes)]
+            # Mark which rows belong to the largest part
+            curTable[, isLargestPart := (part == largestPartNum)]
+        } else {
+            # Only one part, so it's the largest
+            curTable[, isLargestPart := TRUE]
+        }
+        
         curTable[, cluster := clusterLevels[i]]
         curTable[, part := paste0(cluster, "#", part)]
         curTable[, group := paste0(part, "#", group)]
         
-        # Calculate area for each part to identify the largest one
-        # Only the largest part should be labeled
-        uniqueParts <- unique(curTable$part)
-        if (length(uniqueParts) > 1) {
-            # Count points in each part
-            partSizes <- sapply(uniqueParts, function(p) sum(curTable$part == p))
-            largestPart <- uniqueParts[which.max(partSizes)]
-            # Set cluster to NA for all parts except the largest
-            curTable[curTable$part != largestPart, cluster := NA]
-        }
+        # Create a label column that is only set for the largest part
+        # This preserves cluster for color mapping while controlling labels
+        curTable[, label := ifelse(isLargestPart, as.character(cluster), NA_character_)]
+        curTable[, isLargestPart := NULL]  # Remove helper column
         
         curTable[]
     }))

@@ -8,6 +8,8 @@
 #' @returns data.table with points representing the mask borders.
 #'      Each individual border line corresponds to a single level of `group` column.
 #'      Cluster assignment is in `cluster` column.
+#'      The `label` column contains cluster labels only for the largest part of each cluster,
+#'      ensuring only one label appears per cluster when using `fancyMask()`.
 #' @inheritParams generateMask
 #' @export
 #' @examples
